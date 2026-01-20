@@ -1,3 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Noticias Relevantes</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    .news-item { margin-bottom: 15px; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>Noticias Relevantes</h1>
+
+<input type="text" id="keyword" placeholder="Palabra clave (USA, Estados Unidos, Groenlandia, Venezuela, tren, economía...)">
+<button onclick="fetchNews()">Buscar</button>
+
+<div id="news-container"></div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
 import feedparser # O la librería que uses
 import time       # Necesario para el input/sleep
 
