@@ -1,8 +1,8 @@
 import streamlit as st
 import requests
 
-# Leer la llave desde los Secrets de Streamlit
-API_KEY = st.secrets["news_key"]
+
+API_KEY = "097761fa694c4b468d1fcd47964bc941"
 
 # Configuración de la página
 st.set_page_config(page_title="Global News Radar", page_icon="🌎")
