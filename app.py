@@ -1,52 +1,34 @@
 import streamlit as st
 import feedparser
 import urllib.request
+import google.generativeai as genai
 import time
 
-# 1. Configuración de estilo Atlántica Agrícola Premium
+# --- CONFIGURACIÓN DE IA ---
+# SUSTITUYE AQUÍ TU LLAVE
+API_KEY_GEMINI = "PEGA_AQUÍ_TU_API_KEY" 
+genai.configure(api_key=API_KEY_GEMINI)
+model = genai.GenerativeModel('gemini-1.5-flash')
+
+# --- CONFIGURACIÓN VISUAL ---
 st.set_page_config(page_title="Global Intelligence Monitor", layout="wide", page_icon="🌱")
 
 st.markdown("""
     <style>
-    /* Fondo y fuentes */
     .main { background-color: #f4f7f6; }
-    h1 { color: #004d40; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-weight: 700; }
-    
-    /* Estilo de Tarjetas */
+    h1 { color: #004d40; font-family: 'Segoe UI'; font-weight: 700; }
     .news-card {
-        background-color: #ffffff;
-        padding: 20px;
-        border-radius: 10px;
-        border-left: 5px solid #2e7d32;
-        margin-bottom: 15px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        background-color: #ffffff; padding: 15px; border-radius: 10px;
+        border-left: 5px solid #2e7d32; margin-bottom: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05); height: 180px;
     }
-    .news-title {
-        color: #004d40;
-        font-size: 18px;
-        font-weight: bold;
-        text-decoration: none;
-    }
-    .news-title:hover { color: #2e7d32; }
-    
-    /* Etiquetas (Badges) */
-    .badge {
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        font-weight: bold;
-        margin-right: 5px;
-        color: white;
-    }
-    .badge-puerto { background-color: #0277bd; }
-    .badge-moneda { background-color: #2e7d32; }
-    .badge-conflicto { background-color: #c62828; }
-    .badge-general { background-color: #757575; }
+    .badge { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; color: white; }
+    .badge-alert { background-color: #c62828; }
+    .badge-log { background-color: #0277bd; }
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🌱 Global Strategic Monitor")
-st.write("Inteligencia de mercado y logística en tiempo real.")
+st.title("🌱 Global Strategic Monitor (AI Powered)")
 
 continentes = {
     "AMÉRICA": ["Costa Rica", "Panamá", "Paraguay", "Brasil", "Uruguay", "Argentina", "Chile", "México", "Guatemala"],
@@ -55,59 +37,55 @@ continentes = {
     "ORIENTE": ["Dubái", "Kuwait", "Yeda", "Vietnam", "Myanmar"]
 }
 
-def obtener_badge(titulo):
-    t = titulo.lower()
-    if any(word in t for word in ["puerto", "buque", "marítimo", "canal"]):
-        return '<span class="badge badge-puerto">⚓ PUERTO</span>'
-    if any(word in t for word in ["moneda", "dólar", "divisa", "inflación", "economía"]):
-        return '<span class="badge badge-moneda">💰 ECONOMÍA</span>'
-    if any(word in t for word in ["guerra", "conflicto", "ataque", "tensión"]):
-        return '<span class="badge badge-conflicto">⚔️ ALERTA</span>'
-    return '<span class="badge badge-general">📋 INFO</span>'
-
 def buscar_noticias(pais):
     query = f'"{pais}" (puertos OR logística OR economía OR conflicto)'
     url = f"https://news.google.com/rss/search?q={query}&hl=es&gl=ES&ceid=ES:es"
     req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
     try:
-        time.sleep(0.1) 
         with urllib.request.urlopen(req, timeout=10) as response:
             feed = feedparser.parse(response.read())
-            return feed.entries[:3]
-    except:
-        return []
+            return feed.entries[:2] # 2 noticias por país para no saturar a la IA
+    except: return []
 
-# --- SECCIÓN RESUMEN ---
-st.header("📝 Resumen Global del Día")
-st.info("Hoy se detecta una estabilización en los fletes de América Latina, mientras que la volatilidad de divisas afecta el mercado en Argentina y Turquía. En Oriente Medio, el foco logístico sigue en la seguridad de los puertos clave.")
+# --- LÓGICA DE RECOLECCIÓN PARA IA ---
+todos_los_titulares = []
 
-# --- SECCIÓN NOTICIAS ---
+# Mostramos los países y recolectamos titulares para el resumen
 tabs = st.tabs(list(continentes.keys()))
-
 for i, (nombre_continente, lista_paises) in enumerate(continentes.items()):
     with tabs[i]:
-        # Usamos columnas para que no sea una lista infinita
-        for pais in lista_paises:
-            st.markdown(f"### 📍 {pais}")
-            noticias = buscar_noticias(pais)
-            if noticias:
-                cols = st.columns(len(noticias))
-                for idx, n in enumerate(noticias):
-                    with cols[idx]:
-                        badge = obtener_badge(n.title)
-                        titulo_limpio = n.title.rsplit(" - ", 1)[0]
+        cols = st.columns(3)
+        for idx, pais in enumerate(lista_paises):
+            with cols[idx % 3]:
+                st.subheader(f"📍 {pais}")
+                noticias = buscar_noticias(pais)
+                if noticias:
+                    for n in noticias:
+                        todos_los_titulares.append(f"{pais}: {n.title}")
                         st.markdown(f"""
                             <div class="news-card">
-                                {badge}<br><br>
-                                <a class="news-title" href="{n.link}" target="_blank">{titulo_limpio}</a>
-                                <p style="color: gray; font-size: 12px; margin-top:10px;">📅 {n.published[:16]}</p>
+                                <a style="color: #004d40; font-weight:bold; text-decoration:none;" href="{n.link}" target="_blank">{n.title.rsplit(" - ", 1)[0]}</a>
+                                <p style="color: gray; font-size: 11px; margin-top:10px;">📅 {n.published[:16]}</p>
                             </div>
                             """, unsafe_allow_html=True)
-            else:
-                st.caption("Sin novedades destacadas.")
-            st.write("")
+                else: st.caption("Sin novedades.")
 
-# Botón de refresco lateral
-if st.sidebar.button('🔄 Refrescar Monitor'):
-    st.cache_data.clear()
+# --- SECCIÓN RESUMEN IA (Aparecerá en la barra lateral o al final) ---
+st.sidebar.header("🤖 Resumen Inteligente")
+if st.sidebar.button("Generar Resumen con IA"):
+    if API_KEY_GEMINI == "PEGA_AQUÍ_TU_API_KEY":
+        st.sidebar.error("Falta la API KEY")
+    else:
+        with st.sidebar:
+            with st.spinner("Analizando noticias..."):
+                texto_titulares = "\n".join(todos_los_titulares[:30]) # Enviamos los primeros 30 titulares
+                prompt = f"Eres un analista experto en logística y economía. Basándote en estos titulares, escribe un resumen ejecutivo de un párrafo sobre la situación global actual, destacando riesgos en puertos o moneda: {texto_titulares}"
+                try:
+                    response = model.generate_content(prompt)
+                    st.success("Análisis completado:")
+                    st.write(response.text)
+                except Exception as e:
+                    st.error("Error con la IA")
+
+if st.sidebar.button('🔄 Refrescar Noticias'):
     st.rerun()
