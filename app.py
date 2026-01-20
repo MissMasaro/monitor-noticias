@@ -1,8 +1,12 @@
 import streamlit as st
-import feedparser
-import urllib.request
 import google.generativeai as genai
-import time
+
+# El código buscará automáticamente GEMINI_KEY en los Secrets que acabas de guardar
+try:
+    genai.configure(api_key=st.secrets["GEMINI_KEY"])
+    model = genai.GenerativeModel('gemini-1.5-flash')
+except Exception as e:
+    st.error("No se pudo configurar la IA. Revisa los Secrets en Streamlit.")
 
 # --- CONFIGURACIÓN DE IA ---
 # SUSTITUYE AQUÍ TU LLAVE
