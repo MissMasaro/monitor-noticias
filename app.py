@@ -48,7 +48,7 @@ continentes = {
     "ORIENTE": ["Dubái", "Kuwait", "Yeda", "Vietnam", "Myanmar"]
 }
 
-temas = '(puertos OR logística OR economía OR conflicto OR moneda)'
+temas = 'actualidad'
 
 def obtener_badge(titulo):
     t = titulo.lower()
