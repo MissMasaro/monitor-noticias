@@ -7,7 +7,7 @@ st.set_page_config(page_title="Monitor Estratégico", page_icon="⚓")
 st.title("⚓ Monitor de Noticias: Mediterráneo")
 
 paises = ["Irán", "Libia", "Marruecos", "Túnez", "Francia"]
-temas = '(conflicto OR guerra OR "transporte marítimo" OR puerto OR moneda OR divisa)'
+temas = '(noticias OR economía OR puerto OR conflicto)'
 
 def buscar_noticias(pais):
     query = f"{pais} {temas}"
