@@ -2,46 +2,20 @@ import streamlit as st
 import feedparser
 import urllib.request
 
-st.set_page_config(page_title="Monitor Estratégico", page_icon="⚓")
+st.set_page_config(page_title="Monitor Logístico", page_icon="⚓", layout="wide")
 
-st.title("⚓ Monitor de Noticias: Mediterráneo")
+st.markdown("# ⚓ Monitor de Noticias Estratégicas")
+st.write("Actualización en tiempo real para logística y conflictos.")
 
 paises = ["Irán", "Libia", "Marruecos", "Túnez", "Francia"]
-temas = '(noticias OR economía OR puerto OR conflicto OR transporte)'
+# Filtro optimizado: busca una cosa O la otra
+temas = "(puertos OR logística OR conflicto OR economía OR transporte)"
 
 def buscar_noticias(pais):
-    query = f"{pais} {temas}"
+    # Usamos comillas para asegurar que el país sea el centro de la búsqueda
+    query = f'"{pais}" {temas}'
     url = f"https://news.google.com/rss/search?q={query}&hl=es&gl=ES&ceid=ES:es"
     
-    # ESTA ES LA MEJORA: Configuramos una identidad de navegador (User-Agent)
-    request = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-    
+    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
     try:
-        with urllib.request.urlopen(request) as response:
-            datos = response.read()
-            feed = feedparser.parse(datos)
-            return feed.entries[:5]
-    except Exception as e:
-        return []
-
-# Diseño de la web
-col1, col2 = st.columns(2)
-
-for i, pais in enumerate(paises):
-    target_col = col1 if i % 2 == 0 else col2
-    with target_col:
-        st.subheader(f"📍 {pais}")
-        noticias = buscar_noticias(pais)
-        
-        if noticias:
-            for n in noticias:
-                # Limpiamos el título (Google suele añadir el nombre del medio al final)
-                titulo_limpio = n.title.split(" - ")[0]
-                st.markdown(f"**[{titulo_limpio}]({n.link})**")
-                st.caption(f"📅 {n.published[:16]}")
-                st.divider()
-        else:
-            st.warning(f"No se detectan noticias recientes para {pais}.")
-
-if st.button('🔄 Forzar Actualización'):
-    st.rerun()
+        with urllib.request.urlopen(req) as response:
