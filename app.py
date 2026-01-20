@@ -1,103 +1,44 @@
 import streamlit as st
-import feedparser
-import google.generativeai as genai
-import time
-from datetime import datetime
+import requests
 
-# 1. CONEXIÓN SEGURA CON LA IA
-def configurar_ia():
-    try:
-        if "GEMINI_KEY" in st.secrets:
-            genai.configure(api_key=st.secrets["GEMINI_KEY"])
-            return genai.GenerativeModel('gemini-1.5-flash')
-    except:
-        return None
-    return None
+# Configuración de la página
+st.set_page_config(page_title="Global News Radar", page_icon="🌎")
 
-ia_model = configurar_ia()
+st.title("🌎 Radar de Noticias Globales")
+st.subheader("Los 5 titulares más importantes de la prensa internacional")
 
-# 2. CONFIGURACIÓN DE LA INTERFAZ (ESTILO ATLÁNTICA AGRÍCOLA)
-st.set_page_config(page_title="Monitor Global 2.0", layout="wide", page_icon="🌱")
+# Tu API Key de NewsAPI.org
+API_KEY = "TU_API_KEY_AQUI" 
 
-st.markdown("""
-    <style>
-    .main { background-color: #f8faf9; }
-    .stHeading h1 { color: #004d40; border-bottom: 3px solid #2e7d32; }
-    .news-card {
-        background-color: #ffffff; border-radius: 12px; padding: 15px;
-        border-left: 6px solid #2e7d32; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        margin-bottom: 20px; min-height: 150px;
-    }
-    .pais-tag { background-color: #004d40; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-    </style>
-    """, unsafe_allow_html=True)
+# Lista de periódicos influyentes (IDs de NewsAPI)
+sources = "the-new-york-times,the-guardian,al-jazeera-english,le-monde,the-times-of-india"
 
-st.title("🌱 Monitor Global Estratégico 2.0")
-st.caption(f"Actualizado: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+def get_news():
+    url = f"https://newsapi.org/v2/top-headlines?sources={sources}&apiKey={API_KEY}"
+    response = requests.get(url)
+    return response.json()
 
-# 3. PAÍSES Y CONTINENTES
-continentes = {
-    "AMÉRICA": ["Costa Rica", "Panamá", "Paraguay", "Brasil", "Uruguay", "Argentina", "Chile", "México", "Guatemala"],
-    "EUROPA": ["España", "Francia", "Italia", "Rusia", "Turquía"],
-    "ÁFRICA": ["Marruecos", "Túnez", "Argelia", "Egipto", "Senegal"],
-    "ORIENTE": ["Dubái", "Kuwait", "Yeda", "Vietnam", "Myanmar"]
-}
-
-# 4. MOTOR DE BÚSQUEDA DE NOTICIAS
-def traer_noticias(pais):
-    # Buscamos términos clave de logística y economía
-    busqueda = f'"{pais}" (puertos OR logística OR economía OR conflicto)'
-    url = f"https://news.google.com/rss/search?q={busqueda}&hl=es&gl=ES&ceid=ES:es"
+if st.button('Actualizar Noticias'):
+    data = get_news()
     
-    try:
-        # Usamos feedparser directamente (más estable)
-        feed = feedparser.parse(url)
-        return feed.entries[:3] # Traer 3 noticias
-    except:
-        return []
-
-# 5. ESTRUCTURA DE LA APP
-titulares_para_ia = []
-
-tabs = st.tabs(list(continentes.keys()))
-
-for i, (nombre_cont, lista_paises) in enumerate(continentes.items()):
-    with tabs[i]:
-        cols = st.columns(3)
-        for idx, pais in enumerate(lista_paises):
-            with cols[idx % 3]:
-                st.markdown(f"### <span class='pais-tag'>{pais}</span>", unsafe_allow_html=True)
-                noticias = traer_noticias(pais)
+    if data.get("status") == "ok":
+        articles = data.get("articles", [])
+        
+        # Diccionario para asegurar 1 titular por medio
+        seen_sources = set()
+        count = 0
+        
+        for art in articles:
+            source_name = art['source']['name']
+            if source_name not in seen_sources and count < 5:
+                st.markdown(f"### 📰 {source_name}")
+                st.write(f"**Titular:** {art['title']}")
+                st.write(f"[Leer noticia completa]({art['url']})")
+                st.divider()
                 
-                if noticias:
-                    for n in noticias:
-                        titulares_para_ia.append(f"{pais}: {n.title}")
-                        # Limpiar título
-                        t_limpio = n.title.split(" - ")[0]
-                        st.markdown(f"""
-                            <div class="news-card">
-                                <a href="{n.link}" target="_blank" style="text-decoration:none; color:#004d40; font-weight:bold;">{t_limpio}</a>
-                                <p style="font-size:11px; color:#666; margin-top:10px;">🕒 {n.published[:16]}</p>
-                            </div>
-                        """, unsafe_allow_html=True)
-                else:
-                    st.write("No hay noticias críticas hoy.")
-
-# 6. RESUMEN INTELIGENTE EN BARRA LATERAL
-st.sidebar.image("https://www.atlanticaagricola.com/wp-content/uploads/2021/05/logo-atlantica-agricola.png", width=180)
-st.sidebar.header("🤖 Inteligencia de Mercado")
-
-if st.sidebar.button("Generar Resumen Global"):
-    if ia_model and titulares_para_ia:
-        with st.sidebar:
-            with st.spinner("Analizando situación..."):
-                texto = "\n".join(titulares_para_ia[:50])
-                prompt = f"Analiza estos titulares y genera un resumen ejecutivo de un párrafo para Atlántica Agrícola sobre riesgos logísticos y económicos: {texto}"
-                respuesta = ia_model.generate_content(prompt)
-                st.success("Análisis Estratégico:")
-                st.write(respuesta.text)
+                seen_sources.add(source_name)
+                count += 1
     else:
-        st.sidebar.warning("Configura la clave GEMINI_KEY o espera a que carguen noticias.")
+        st.error("Error al conectar con la API. Verifica tu API Key.")
 
-if st.sidebar.button("🔄 Refrescar Todo"):
-    st.rerun()
+st.info("Esta app filtra noticias de NYT, The Guardian, Al Jazeera, Le Monde y Times of India.")
